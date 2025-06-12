@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AR con audio al detectar marcador</title>
+  <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+  <!-- Pantalla de inicio para pedir interacción del usuario -->
+  <div id="start-screen" style="position: absolute; top: 0; left: 0; 
+    width: 100vw; height: 100vh; background: black; color: white; 
+    display: flex; align-items: center; justify-content: center; z-index: 2;">
+    <button id="start-button" style="padding: 1em 2em; font-size: 1.5em;">Iniciar experiencia</button>
+  </div>
+
+  <a-scene
+    vr-mode-ui="enabled: false;"
+    loading-screen="enabled: false;"
+    renderer="logarithmicDepthBuffer: true;"
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+    embedded
+    gesture-detector
+    id="scene"
+  >
+    <a-assets>
+      <a-asset-item id="animated-asset" src="assets/asset.glb"></a-asset-item>
+      <audio id="marker-sound" src="assets/audio.mp3" preload="auto"></audio>
+    </a-assets>
+
+    <a-marker
+      id="animated-marker"
+      type="pattern"
+      preset="custom"
+      url="assets/marker.patt"
+      raycaster="objects: .clickable"
+      emitevents="true"
+      cursor="fuse: false; rayOrigin: mouse;"
+    >
+      <a-entity
+        id="bowser-model"
+        scale="10.772205137494614 10.772205137494614 10.772205137494614"
+        animation-mixer="loop: repeat"
+        gltf-model="#animated-asset"
+        class="clickable"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    let audioReady = false;
+    let markerSound = document.getElementById('marker-sound');
+
+    document.getElementById('start-button').addEventListener('click', function () {
+      markerSound.play().then(() => {
+        markerSound.pause();
+        // NO se reinicia el tiempo, para que siga desde donde se quedó
+        audioReady = true;
+        document.getElementById('start-screen').style.display = 'none';
+      }).catch(e => {
+        alert("Error al cargar el audio: " + e.message);
+      });
+    });
+
+    let marker = document.querySelector('#animated-marker');
+
+    marker.addEventListener('markerFound', function () {
+      if (audioReady && markerSound.paused) {
+        markerSound.play();
+      }
+    });
+
+    marker.addEventListener('markerLost', function () {
+      if (audioReady && !markerSound.paused) {
+        markerSound.pause(); // Solo se pausa, no se reinicia
+      }
+    });
+  </script>
+</body>
+</html>
